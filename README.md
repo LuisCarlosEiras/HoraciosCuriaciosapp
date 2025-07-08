@@ -6,7 +6,7 @@ Um jogo de estratégia em navegador inspirado na lendária batalha entre os Hor�
 
 Você pode jogar o jogo diretamente no seu navegador através deste link:
 
-**[Clique aqui para jogar](https://luiscarlosseiras.github.io/Horacios-Curiacios/tabuleiro.html)**
+**[Clique aqui para jogar](https://luiscarlosseiras.github.io/HoraciosCuriaciosapp)**
 
 ## Funcionalidades Principais
 
