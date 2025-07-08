@@ -1,4 +1,3 @@
-# HoraciosCuriaciosapp
 # Os Horácios e os Curiácios
 
 Um jogo de estratégia em navegador inspirado na lendária batalha entre os Horácios e Curiácios. Este projeto foi desenvolvido para explorar conceitos de Inteligência Artificial e desenvolvimento de Progressive Web Apps (PWA).
