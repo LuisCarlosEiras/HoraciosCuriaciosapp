@@ -1,6 +1,8 @@
 # Os Horácios e os Curiácios
 
-![Os Horácios e os Curiácios].(images/icon-512.png)
+![Os Horácios e os Curiácios](images/icon-512.png)
+
+
 
 Um jogo de estratégia em navegador inspirado na lendária batalha entre os Horácios e Curiácios. Este projeto foi desenvolvido para explorar conceitos de Inteligência Artificial e desenvolvimento de Progressive Web Apps (PWA).
 
