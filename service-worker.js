@@ -2,12 +2,10 @@ JavaScript
 const CACHE_NAME = 'horacios-curiacios-v1';
 // Arquivos que serão salvos em cache
 const urlsToCache = [
-  '/',
-  '/tabuleiro.html',
-  '/style.css', // Se você separar seu CSS
-  '/script.js', // Se você separar seu JS
-  '/images/icon-192.png',
-  '/images/icon-512.png',
+  './', // Representa a pasta raiz do projeto
+  'index.html',
+  'images/icon-192.png',
+  'images/icon-512.png', // Verifique se o nome do arquivo é .png
   'https://cdn.jsdelivr.net/npm/chart.js'
 ];
 
