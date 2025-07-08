@@ -1,6 +1,13 @@
+<div style="text-align: center;">
+  <h1>Os Horácios e os Curiácios</h1>
+  <img src="images/icon-192.png" alt="Os Horácios e os Curiácios">
+</div>
+
+
+
 # Os Horácios e os Curiácios
 
-![Os Horácios e os Curiácios](images/icon-512.png)
+![Os Horácios e os Curiácios](images/icon-192.png)
 
 
 
