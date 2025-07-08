@@ -1,10 +1,3 @@
-<div style="text-align: center;">
-# Os Horácios e os Curiácios
-
-<img src="images/icon-192.png" alt="Os Horácios e os Curiácios" style="display: block; margin-left: auto; margin-right: auto;">
-</div>
-
-
 # Os Horácios e os Curiácios
 
 ![Os Horácios e os Curiácios](images/icon-192.png)
