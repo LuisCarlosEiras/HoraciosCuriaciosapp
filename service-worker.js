@@ -1,4 +1,4 @@
-JavaScript
+// JavaScript
 const CACHE_NAME = 'horacios-curiacios-v1';
 // Arquivos que serão salvos em cache
 const urlsToCache = [
