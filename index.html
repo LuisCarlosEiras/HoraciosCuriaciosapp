@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
 
-    <title>Horácios e Curiácios v2.4 (Ataque Estratégico)</title>
+    <title>Horácios e Curiácios v2.5 (Ataque Aleatório Inicial)</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -72,7 +72,7 @@
         }
 
         // 2. Lógica principal do jogo
-        let pecas, donos, selecionado = null, movimentosValidos = [], semCaptura = 0;
+        let pecas, donos, selecionado = null, movimentosValidos = [], semCaptura = 0, curiacioMoveCount = 0;
         let resultados = [];
         let graficoBarras, graficoEvolucao;
 
@@ -92,7 +92,6 @@
             desenharGraficoEvolucao();
         }
 
-        // ... todo o resto do seu código JavaScript continua aqui ...
         function estadoInicial() {
           pecas = {
             'C8': '🏹', 'D8': '🏹', 'E8': '🏹',
@@ -107,6 +106,7 @@
           selecionado = null;
           movimentosValidos = [];
           semCaptura = 0;
+          curiacioMoveCount = 0; // << ALTERAÇÃO: Reseta o contador de jogadas
           document.getElementById('mensagemFinal').innerText = '';
           atualizarTabuleiro();
         }
@@ -289,15 +289,41 @@
             }
             return melhorJogada;
         }
+        
+        // << ALTERAÇÃO PRINCIPAL: Lógica de jogada dos Curiácios
         function jogadaCuriacio() {
-          if (verificarFim()) return;
-          const melhorJogada = encontrarMelhorJogada('C');
-          if (melhorJogada) {
-            moverPeca(melhorJogada.origem, melhorJogada.destino);
-            atualizarTabuleiro();
-            verificarFim();
-          }
+            if (verificarFim()) return;
+        
+            curiacioMoveCount++; // Incrementa o contador de jogadas da partida
+        
+            let jogadaRealizada = null;
+        
+            // Nas 7 primeiras jogadas, o movimento é aleatório
+            if (curiacioMoveCount <= 7) {
+                const cPecasPos = Object.keys(pecas).filter(pos => donos[pos] === 'C');
+                const todasAsJogadasPossiveis = [];
+                for (const origem of cPecasPos) {
+                    const movimentos = gerarMovimentosValidos(origem);
+                    for (const destino of movimentos) {
+                        todasAsJogadasPossiveis.push({ origem, destino });
+                    }
+                }
+        
+                if (todasAsJogadasPossiveis.length > 0) {
+                    jogadaRealizada = todasAsJogadasPossiveis[Math.floor(Math.random() * todasAsJogadasPossiveis.length)];
+                }
+            } else {
+                // A partir da 8ª jogada, aciona as IAs
+                jogadaRealizada = encontrarMelhorJogada('C');
+            }
+        
+            if (jogadaRealizada) {
+                moverPeca(jogadaRealizada.origem, jogadaRealizada.destino);
+                atualizarTabuleiro();
+                verificarFim();
+            }
         }
+
         function jogadaHoracioIA() {
           if (verificarFim()) return;
           const melhorJogada = encontrarMelhorJogada('H');
@@ -332,7 +358,7 @@
         function zerarTreinamento() {
           resultados = [];
           localStorage.removeItem('resultadosHoraciosCuriacios');
-          estadoInicial();
+          estadoInicial(); // << Já reseta o contador de jogadas ao ser chamada
           desenharGraficoBarras();
           desenharGraficoEvolucao();
         }
