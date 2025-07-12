@@ -8,9 +8,10 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
 
-    <title>Horácios e Curiácios v2.5 (Ataque Aleatório Inicial)</title>
+    <title>Horácios e Curiácios v2.7 (Fases da IA e Correções)</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
 
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -57,22 +58,17 @@
     </div>
 
     <script>
-        // 1. Registro do Service Worker (executado apenas uma vez)
+        // 1. Registro do Service Worker
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Certifique-se que o nome do arquivo aqui ('service-worker.js') está correto
                 navigator.serviceWorker.register('service-worker.js')
-                    .then(registration => {
-                        console.log('Service Worker registrado com sucesso:', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('Falha no registro do Service Worker:', err);
-                    });
+                    .then(registration => console.log('Service Worker registrado com sucesso:', registration.scope))
+                    .catch(err => console.log('Falha no registro do Service Worker:', err));
             });
         }
 
         // 2. Lógica principal do jogo
-        let pecas, donos, selecionado = null, movimentosValidos = [], semCaptura = 0, curiacioMoveCount = 0;
+        let pecas, donos, selecionado = null, movimentosValidos = [], semCaptura = 0, curiacioMoveCount = 0, curiacioPazCounter = 0;
         let resultados = [];
         let graficoBarras, graficoEvolucao;
 
@@ -106,7 +102,8 @@
           selecionado = null;
           movimentosValidos = [];
           semCaptura = 0;
-          curiacioMoveCount = 0; // << ALTERAÇÃO: Reseta o contador de jogadas
+          curiacioMoveCount = 0;
+          curiacioPazCounter = 0;
           document.getElementById('mensagemFinal').innerText = '';
           atualizarTabuleiro();
         }
@@ -151,16 +148,40 @@
             atualizarTabuleiro();
           }
         }
+        
+        // << BUG FIX: Função reestruturada para lógica mais clara e robusta
         function moverPeca(origem, destino) {
+            const jogadorMovendo = donos[origem];
+            const pecaMovida = pecas[origem];
             const captura = !!pecas[destino];
-            pecas[destino] = pecas[origem];
-            donos[destino] = donos[origem];
+
+            // 1. Atualiza os contadores com base na natureza do movimento
+            if (jogadorMovendo === 'C') {
+                if (captura) {
+                    curiacioPazCounter = 0; // Curiácio atacou, zera o contador específico
+                } else {
+                    curiacioPazCounter++; // Curiácio não atacou, incrementa
+                }
+            }
+
+            // O contador geral de paz (regra dos 50 lances) é atualizado em qualquer captura
+            if (captura) {
+                semCaptura = 0;
+            } else {
+                semCaptura++;
+            }
+            
+            // 2. Executa a movimentação da peça no tabuleiro
+            pecas[destino] = pecaMovida;
+            donos[destino] = jogadorMovendo;
             delete pecas[origem];
             delete donos[origem];
-            if (captura) semCaptura = 0; else semCaptura++;
+            
+            // 3. Limpa o estado de seleção
             selecionado = null;
             movimentosValidos = [];
         }
+
         function gerarMovimentosValidos(origem) {
           const tipo = pecas[origem];
           if(!tipo) return [];
@@ -183,6 +204,7 @@
           }
           return movimentos;
         }
+
         function verificarFim() {
           if(document.getElementById('mensagemFinal').innerText !== '') return true;
           const valores = Object.values(donos);
@@ -190,9 +212,11 @@
           const c = valores.filter(v => v === 'C').length;
           if (h === 0) return fimDeJogo("C");
           if (c === 0) return fimDeJogo("H");
+          if (curiacioPazCounter >= 7) return fimDeJogo("P");
           if (semCaptura >= 50) return fimDeJogo("P");
           return false;
         }
+
         function fimDeJogo(resultado) {
           let msg = resultado === 'H' ? "🏆 Vitória dos Horácios" : resultado === 'C' ? "🏆 Vitória dos Curiácios" : "🤝 Paz foi alcançada";
           document.getElementById('mensagemFinal').innerText = msg;
@@ -205,8 +229,7 @@
         function isSquareThreatenedBy(square, opponent) {
           const opponentPieces = Object.keys(pecas).filter(pos => donos[pos] === opponent);
           for (const pos of opponentPieces) {
-            const validMoves = gerarMovimentosValidos(pos);
-            if (validMoves.includes(square)) {
+            if (gerarMovimentosValidos(pos).includes(square)) {
               return true;
             }
           }
@@ -254,8 +277,7 @@
                         let melhorJogadaDeFuga = null;
                         let placarMaxFuga = -Infinity;
                         for (const origem of cPecasPos) {
-                            const movimentos = gerarMovimentosValidos(origem);
-                            for (const destino of movimentos) {
+                            for (const destino of gerarMovimentosValidos(origem)) {
                                 let placarFuga = parseInt(destino[1]) * 2;
                                 if (pecas[destino] && donos[destino] === 'H') {
                                     placarFuga -= 50; 
@@ -278,8 +300,7 @@
             let placarMax = -Infinity;
             for (const origem in pecas) {
                 if (donos[origem] !== donoDaVez) continue;
-                const movimentos = gerarMovimentosValidos(origem);
-                for (const destino of movimentos) {
+                for (const destino of gerarMovimentosValidos(origem)) {
                     const placar = avaliarJogada(origem, destino, donoDaVez);
                     if (placar > placarMax) {
                         placarMax = placar;
@@ -290,33 +311,24 @@
             return melhorJogada;
         }
         
-        // << ALTERAÇÃO PRINCIPAL: Lógica de jogada dos Curiácios
         function jogadaCuriacio() {
             if (verificarFim()) return;
-        
-            curiacioMoveCount++; // Incrementa o contador de jogadas da partida
-        
+            curiacioMoveCount++; 
             let jogadaRealizada = null;
-        
-            // Nas 7 primeiras jogadas, o movimento é aleatório
             if (curiacioMoveCount <= 7) {
                 const cPecasPos = Object.keys(pecas).filter(pos => donos[pos] === 'C');
                 const todasAsJogadasPossiveis = [];
                 for (const origem of cPecasPos) {
-                    const movimentos = gerarMovimentosValidos(origem);
-                    for (const destino of movimentos) {
+                    for (const destino of gerarMovimentosValidos(origem)) {
                         todasAsJogadasPossiveis.push({ origem, destino });
                     }
                 }
-        
                 if (todasAsJogadasPossiveis.length > 0) {
                     jogadaRealizada = todasAsJogadasPossiveis[Math.floor(Math.random() * todasAsJogadasPossiveis.length)];
                 }
             } else {
-                // A partir da 8ª jogada, aciona as IAs
                 jogadaRealizada = encontrarMelhorJogada('C');
             }
-        
             if (jogadaRealizada) {
                 moverPeca(jogadaRealizada.origem, jogadaRealizada.destino);
                 atualizarTabuleiro();
@@ -334,13 +346,11 @@
         function treinarIA(numJogos) {
           document.getElementById('mensagemFinal').innerText = `Treinando...`;
           let jogosFeitos = 0;
-        
           function proximoJogo() {
               if (jogosFeitos >= numJogos) {
                   estadoInicial(); 
                   return;
               }
-              
               estadoInicial();
               let profundidade = 0;
               while (profundidade < 150) {
@@ -358,7 +368,7 @@
         function zerarTreinamento() {
           resultados = [];
           localStorage.removeItem('resultadosHoraciosCuriacios');
-          estadoInicial(); // << Já reseta o contador de jogadas ao ser chamada
+          estadoInicial();
           desenharGraficoBarras();
           desenharGraficoEvolucao();
         }
@@ -395,6 +405,7 @@
             });
           }
         }
+        // << FEATURE: Função do gráfico de evolução alterada para incluir anotações
         function desenharGraficoEvolucao() {
             const ctx = document.getElementById('graficoEvolucao').getContext('2d');
             let cWinsCount = 0;
@@ -403,6 +414,43 @@
                 return (cWinsCount / (index + 1)) * 100;
             });
             const labels = resultados.map((_, index) => `Jogo ${index + 1}`);
+            
+            const annotations = {
+                fase1: {
+                    type: 'box',
+                    xMin: 0,
+                    xMax: 49,
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    borderColor: 'rgba(76, 175, 80, 0.3)',
+                    borderWidth: 1,
+                    label: {
+                        display: true,
+                        content: 'Fase 1: IA Padrão',
+                        position: 'start',
+                        color: '#333',
+                        font: { size: 10 }
+                    }
+                }
+            };
+
+            if (resultados.length > 50) {
+                annotations.fase2 = {
+                    type: 'box',
+                    xMin: 49,
+                    xMax: resultados.length,
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    borderColor: 'rgba(255, 152, 0, 0.3)',
+                    borderWidth: 1,
+                    label: {
+                        display: true,
+                        content: 'Fase 2: IA com Estratégia de Fuga',
+                        position: 'start',
+                        color: '#333',
+                        font: { size: 10 }
+                    }
+                };
+            }
+
             const data = {
                 labels: labels,
                 datasets: [{
@@ -414,28 +462,33 @@
                     tension: 0.1
                 }]
             };
+
+            const options = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    title: { display: true, text: 'Evolução da Performance dos Curiácios' },
+                    legend: { display: false },
+                    annotation: {
+                        annotations: annotations
+                    }
+                },
+                scales: {
+                    y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } },
+                    x: { ticks: { display: labels.length < 30 } }
+                }
+            };
+
             if (graficoEvolucao) {
                 graficoEvolucao.data = data;
+                graficoEvolucao.options.plugins.annotation.annotations = annotations;
+                graficoEvolucao.options.scales.x.ticks.display = labels.length < 30;
                 graficoEvolucao.update();
             } else {
                 graficoEvolucao = new Chart(ctx, {
                     type: 'line',
                     data: data,
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            title: { display: true, text: 'Evolução da Performance dos Curiácios' },
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: { 
-                                beginAtZero: true, 
-                                max: 100,
-                                ticks: { callback: value => value + '%' }
-                            }
-                        }
-                    }
+                    options: options
                 });
             }
         }
