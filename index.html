@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#000000">
     <meta name="apple-mobile-web-app-capable" content="yes">
 
-    <title>Horácios e Curiácios v2.7 (Fases da IA e Correções)</title>
+    <title>Horácios e Curiácios v2.8 (Correções e Fases Detalhadas)</title>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
@@ -58,16 +58,10 @@
     </div>
 
     <script>
-        // 1. Registro do Service Worker
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('service-worker.js')
-                    .then(registration => console.log('Service Worker registrado com sucesso:', registration.scope))
-                    .catch(err => console.log('Falha no registro do Service Worker:', err));
-            });
-        }
+        // << BUG FIX: Registrar o plugin de anotação para garantir que ele seja exibido
+        Chart.register(window.ChartAnnotation);
 
-        // 2. Lógica principal do jogo
+        // Lógica principal do jogo
         let pecas, donos, selecionado = null, movimentosValidos = [], semCaptura = 0, curiacioMoveCount = 0, curiacioPazCounter = 0;
         let resultados = [];
         let graficoBarras, graficoEvolucao;
@@ -149,35 +143,32 @@
           }
         }
         
-        // << BUG FIX: Função reestruturada para lógica mais clara e robusta
+        // << BUG FIX: Lógica de moverPeca refeita para garantir a contagem correta da paz.
         function moverPeca(origem, destino) {
             const jogadorMovendo = donos[origem];
             const pecaMovida = pecas[origem];
             const captura = !!pecas[destino];
 
-            // 1. Atualiza os contadores com base na natureza do movimento
-            if (jogadorMovendo === 'C') {
-                if (captura) {
-                    curiacioPazCounter = 0; // Curiácio atacou, zera o contador específico
-                } else {
-                    curiacioPazCounter++; // Curiácio não atacou, incrementa
-                }
-            }
-
-            // O contador geral de paz (regra dos 50 lances) é atualizado em qualquer captura
+            // Etapa 1: Analisar o movimento e atualizar contadores ANTES de alterar o estado.
             if (captura) {
                 semCaptura = 0;
+                if (jogadorMovendo === 'C') {
+                    curiacioPazCounter = 0;
+                }
             } else {
                 semCaptura++;
+                if (jogadorMovendo === 'C') {
+                    curiacioPazCounter++;
+                }
             }
             
-            // 2. Executa a movimentação da peça no tabuleiro
+            // Etapa 2: Executar a alteração no estado do tabuleiro.
             pecas[destino] = pecaMovida;
             donos[destino] = jogadorMovendo;
             delete pecas[origem];
             delete donos[origem];
             
-            // 3. Limpa o estado de seleção
+            // Etapa 3: Limpar seleção.
             selecionado = null;
             movimentosValidos = [];
         }
@@ -405,7 +396,8 @@
             });
           }
         }
-        // << FEATURE: Função do gráfico de evolução alterada para incluir anotações
+
+        // << FEATURE: Lógica das anotações alterada para as 3 fases solicitadas
         function desenharGraficoEvolucao() {
             const ctx = document.getElementById('graficoEvolucao').getContext('2d');
             let cWinsCount = 0;
@@ -415,39 +407,28 @@
             });
             const labels = resultados.map((_, index) => `Jogo ${index + 1}`);
             
-            const annotations = {
-                fase1: {
-                    type: 'box',
-                    xMin: 0,
-                    xMax: 49,
-                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
-                    borderColor: 'rgba(76, 175, 80, 0.3)',
-                    borderWidth: 1,
-                    label: {
-                        display: true,
-                        content: 'Fase 1: IA Padrão',
-                        position: 'start',
-                        color: '#333',
-                        font: { size: 10 }
-                    }
-                }
-            };
+            const annotations = {};
+            const totalResultados = resultados.length;
 
-            if (resultados.length > 50) {
+            if (totalResultados > 0) {
+                annotations.fase1 = {
+                    type: 'box', xMin: 0, xMax: 6,
+                    backgroundColor: 'rgba(200, 200, 200, 0.15)', borderColor: 'rgba(150, 150, 150, 0.3)',
+                    label: { display: true, content: 'Fase 1: aleatória', position: 'start', color: '#555', font: { size: 10 } }
+                };
+            }
+            if (totalResultados > 7) {
                 annotations.fase2 = {
-                    type: 'box',
-                    xMin: 49,
-                    xMax: resultados.length,
-                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
-                    borderColor: 'rgba(255, 152, 0, 0.3)',
-                    borderWidth: 1,
-                    label: {
-                        display: true,
-                        content: 'Fase 2: IA com Estratégia de Fuga',
-                        position: 'start',
-                        color: '#333',
-                        font: { size: 10 }
-                    }
+                    type: 'box', xMin: 7, xMax: 49,
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)', borderColor: 'rgba(76, 175, 80, 0.3)',
+                    label: { display: true, content: 'Fase 2: IA padrão', position: 'start', color: '#333', font: { size: 10 } }
+                };
+            }
+            if (totalResultados > 50) {
+                annotations.fase3 = {
+                    type: 'box', xMin: 50, xMax: totalResultados,
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)', borderColor: 'rgba(255, 152, 0, 0.3)',
+                    label: { display: true, content: 'Fase 3: estratégia de fuga', position: 'start', color: '#333', font: { size: 10 } }
                 };
             }
 
@@ -469,9 +450,7 @@
                 plugins: {
                     title: { display: true, text: 'Evolução da Performance dos Curiácios' },
                     legend: { display: false },
-                    annotation: {
-                        annotations: annotations
-                    }
+                    annotation: { annotations: annotations }
                 },
                 scales: {
                     y: { beginAtZero: true, max: 100, ticks: { callback: value => value + '%' } },
