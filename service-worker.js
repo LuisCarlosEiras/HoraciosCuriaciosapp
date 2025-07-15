@@ -2,7 +2,7 @@ const CACHE_NAME = 'horacios-curiacios-v1';
 // Arquivos que serão salvos em cache
 const urlsToCache = [
   '/',
-  '/tabuleiro.html',
+  '/index.html',
   '/style.css', // Se você separar seu CSS
   '/script.js', // Se você separar seu JS
   '/images/icon-192.png',
